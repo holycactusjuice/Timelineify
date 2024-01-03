@@ -20,13 +20,14 @@ class Track(EmbeddedDocument):
     plays = IntField(required=True, default=1)
     time_listened = IntField(required=True, default=0)
 
-    def __init__(self, track_id, title, artists, album, album_art_url, length, plays=1, time_listened=0):
+    def __init__(self, track_id, title, artists, album, album_art_url, length, played_at, plays=1, time_listened=0):
         self.track_id = track_id
         self.title = title
         self.artists = artists
         self.album = album
         self.album_art_url = album_art_url
         self.length = length
+        self.played_at = played_at
         self.plays = plays
         self.time_listened = time_listened
 
@@ -50,19 +51,13 @@ class Track(EmbeddedDocument):
         album = track_json["track"]["album"]["name"]
         album_art_url = track_json["track"]["album"]["images"][0]["url"]
         length = int(track_json['track']['duration_ms'] / 1000)
+        played_at = track_json["played_at"]
 
         # instantiate Track object from these data
-        track = Track(track_id, title, artists, album, album_art_url, length)
+        track = Track(track_id, title, artists, album,
+                      album_art_url, length, played_at)
 
         return track
-
-    def __add__(self, other):
-        if (self.track_id == other.track_id):
-            plays = self.plays + other.plays
-            time_listened = self.time_listened + other.time_listened
-            return Track(self.track_id, self.title, self.artists, self.album, self.album_art_url, plays, time_listened)
-        else:
-            return self
 
 
 class User(UserMixin, Document):
@@ -122,7 +117,7 @@ class User(UserMixin, Document):
 
     @staticmethod
     def update_last_played_at(user_id, last_played_at):
-
+        pass
 
     @staticmethod
     def get_recent_tracks(access_token):
@@ -143,10 +138,10 @@ class User(UserMixin, Document):
             return []
 
         recent_tracks = response.json()["items"]
-        
+
         # get the timestamp of when the most recent track ended
         last_played_at = Spotify.to_unix(recent_tracks[0]["played_at"])
-        
+
         recent_tracks.reverse()
 
         # Track objects stored here
@@ -154,7 +149,7 @@ class User(UserMixin, Document):
 
         for i, track_json in enumerate(recent_tracks):
             # list is least to most recent
-            
+
             # listen time is given as the time when the user stopped listening to the track
             # we can't calculate listen time for the first track since there is no track before it
             # so we ignore the last track
@@ -170,20 +165,10 @@ class User(UserMixin, Document):
             #   - this is the first song in the session
             # so if time_listened > track_length, make time_listened = track_length
             track.time_listened = min(time_listened, track.length)
+            tracks.append(track)
 
-            # if this track is already in the list, update that object
-            # else append to list
-            found = False
-            for t in tracks:
-                if (t.track_id == track.track_id):
-                    t += track
-                    found = True
-                    break
-            if not found:
-                tracks.append(track)
+        return [last_played_at, tracks]
 
-        return tracks
-    
     @staticmethod
     def update_timeline_data(user_id, access_token):
-        
+        pass

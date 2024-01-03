@@ -17,6 +17,7 @@ class Track(EmbeddedDocument):
     album = StringField(required=True)
     album_art_url = StringField(required=True)
     length = IntField(required=True)
+    played_at = IntField(required=True)
     plays = IntField(required=True, default=1)
     time_listened = IntField(required=True, default=0)
 
@@ -58,6 +59,28 @@ class Track(EmbeddedDocument):
                       album_art_url, length, played_at)
 
         return track
+
+    def to_json(self):
+        """
+        Converts Track object to track JSON
+
+        Returns:
+            track_json (dict): track json to be sent to frontend
+        """
+
+        track_json = {
+            "track_id": self.track_id,
+            "title": self.title,
+            "artists": self.artists,
+            "album": self.album,
+            "album_art_url": self.album_art_url,
+            "length": self.length,
+            "played_at": self.played_at,
+            "plays": self.plays,
+            "time_listened": self.time_listened
+        }
+
+        return track_json
 
 
 class User(UserMixin, Document):
@@ -117,7 +140,10 @@ class User(UserMixin, Document):
 
     @staticmethod
     def update_last_played_at(user_id, last_played_at):
-        pass
+        user_doc = users.find_one({"user_id": user_id})
+        new_values = {"$set": {"last_played_at": last_played_at}}
+        users.update_one(user_doc, new_values)
+        return
 
     @staticmethod
     def get_recent_tracks(access_token):
@@ -138,9 +164,6 @@ class User(UserMixin, Document):
             return []
 
         recent_tracks = response.json()["items"]
-
-        # get the timestamp of when the most recent track ended
-        last_played_at = Spotify.to_unix(recent_tracks[0]["played_at"])
 
         recent_tracks.reverse()
 
@@ -165,10 +188,48 @@ class User(UserMixin, Document):
             #   - this is the first song in the session
             # so if time_listened > track_length, make time_listened = track_length
             track.time_listened = min(time_listened, track.length)
+            track.played_at = track_json["played_at"]
             tracks.append(track)
 
-        return [last_played_at, tracks]
+        return tracks
 
     @staticmethod
     def update_timeline_data(user_id, access_token):
-        pass
+        """
+        Updates the timeline data for the user
+        """
+
+        tracks = User.get_recent_tracks(
+            access_token=access_token)
+
+        user_doc = users.find_one({"user_id": user_id})
+        timeline_data = user_doc["timeline_data"]
+
+        for new_track in tracks:
+            month = Spotify.unix_to_month(new_track.played_at)
+
+            # if month does not yet exist in the user's timeline data, create it
+            if (month not in timeline_data):
+                timeline_data[month] = []
+
+            exists = False
+            for existing_track in timeline_data[month]:
+                # check if track already exists in the user's timeline data
+                if (existing_track.track_id == new_track.track_id):
+                    # if the new track is more recent than the existing track, update the existing track
+                    if (new_track.played_at > existing_track.played_at):
+                        existing_track.played_at = new_track.played_at
+                        exists = True
+                        existing_track.plays += 1
+                        existing_track.time_listened += new_track.time_listened
+                    # otherwise, do nothing since this listen has already been recorded
+                    else:
+                        exists = True
+            # if track does not yet exist in the user's timeline data, add it
+            if (not exists):
+                timeline_data[month].append(new_track.to_json())
+
+        new_values = {"$set": {"timeline_data": timeline_data}}
+        users.update_one(user_doc, new_values)
+
+        return

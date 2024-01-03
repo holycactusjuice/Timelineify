@@ -38,3 +38,14 @@ class Spotify:
 
         return time
 
+    def unix_to_month(unix):
+        """converts unix timestamp to month in format MM-YYYY
+
+        Args:
+            unix (int): unix timestamp
+
+        Returns:
+            str: MM-YYYY
+        """
+
+        return datetime.fromtimestamp(unix).strftime("%m-%Y")

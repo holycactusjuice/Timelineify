@@ -1,12 +1,13 @@
 from mongoengine import Document, EmbeddedDocument, StringField, IntField, ListField, EmbeddedDocumentField, DictField
 from flask_login import UserMixin
+from flask import jsonify
 import requests
 import json
 import math
 import time
 
 from . import users
-from spotify import Spotify
+from .spotify import Spotify
 
 
 class Track(EmbeddedDocument):
@@ -60,7 +61,7 @@ class Track(EmbeddedDocument):
 
         return track
 
-    def to_json(self):
+    def to_dict(self):
         """
         Converts Track object to track JSON
 
@@ -68,7 +69,7 @@ class Track(EmbeddedDocument):
             track_json (dict): track json to be sent to frontend
         """
 
-        track_json = {
+        track_dict = {
             "track_id": self.track_id,
             "title": self.title,
             "artists": self.artists,
@@ -80,7 +81,10 @@ class Track(EmbeddedDocument):
             "time_listened": self.time_listened
         }
 
-        return track_json
+        return track_dict
+    
+    def to_json(self):
+        return jsonify(self.to_dict())
 
 
 class User(UserMixin, Document):
@@ -93,7 +97,7 @@ class User(UserMixin, Document):
     last_played_at = IntField(required=True, default=0)
     timeline_data = DictField(required=True)
 
-    def __init__(self, user_id, email, display_name, pfp_url, access_token, refresh_token, last_played_at, timeline_data={}, *args, **kwargs):
+    def __init__(self, user_id, email, display_name, pfp_url, access_token, refresh_token, last_played_at=0, timeline_data={}, *args, **kwargs):
         super(User, self).__init__(*args, **kwargs)
         self.user_id = user_id
         self.email = email
@@ -104,28 +108,49 @@ class User(UserMixin, Document):
         self.last_played_at = last_played_at
         self.timeline_data = timeline_data
 
+    def from_document(user_doc):
+        """
+        Creates a User object from a user document
+        """
+        user = User(
+            user_id=user_doc["user_id"],
+            email=user_doc["email"],
+            display_name=user_doc["display_name"],
+            pfp_url=user_doc["pfp_url"],
+            access_token=user_doc["access_token"],
+            refresh_token=user_doc["refresh_token"],
+            last_played_at=user_doc["last_played_at"],
+            timeline_data=user_doc["timeline_data"]
+        )
+        return user
+    
+    def to_dict(self):
+        """
+        Converts User object to dictionary
+        """
+        return {
+            "user_id": self.user_id,
+            "email": self.email,
+            "display_name": self.display_name,
+            "pfp_url": self.pfp_url,
+            "access_token": self.access_token,
+            "refresh_token": self.refresh_token,
+            "last_played_at": self.last_played_at,
+            "timeline_data": self.timeline_data
+        }
+
+    def to_json(self):
+        return jsonify(self.to_dict())
+    
     @staticmethod
     def get_user_document(user_id):
         user_doc = users.find_one({"user_id": user_id})
         return user_doc
-
+    
     @staticmethod
-    def get_access_token(user_id):
-        user_doc = users.find_one({"user_id": user_id})
-        access_token = user_doc["access_token"]
-        return access_token
-
-    @staticmethod
-    def get_refresh_token(user_id):
-        user_doc = users.find_one({"user_id": user_id})
-        refresh_token = user_doc["refresh_token"]
-        return refresh_token
-
-    @staticmethod
-    def get_timeline_data(user_id):
-        user_doc = users.find_one({"user_id": user_id})
-        get_timeline_data = user_doc["get_timeline_data"]
-        return get_timeline_data
+    def from_user_id(user_id):
+        user_doc = User.get_user_document(user_id)
+        return User.from_document(user_doc)
 
     @staticmethod
     def get_account_info(access_token):
@@ -138,15 +163,15 @@ class User(UserMixin, Document):
         )
         return response.json()
 
-    @staticmethod
-    def update_last_played_at(user_id, last_played_at):
-        user_doc = users.find_one({"user_id": user_id})
-        new_values = {"$set": {"last_played_at": last_played_at}}
-        users.update_one(user_doc, new_values)
-        return
+    def update(self):
+        """
+        Updates the user document in the database
+        """
+        query = {"user_id": self.user_id}
+        new_values = {"$set": self.to_dict()}
+        users.update_one(query, new_values)
 
-    @staticmethod
-    def get_recent_tracks(access_token):
+    def get_recent_tracks(self):
         response = requests.get(
             url=Spotify.get_recently_played_endpoint,
             params={
@@ -155,7 +180,7 @@ class User(UserMixin, Document):
                 "limit": 50
             },
             headers={
-                "Authorization": f"Bearer {access_token}"
+                "Authorization": f"Bearer {self.access_token}"
             }
         )
 
@@ -193,16 +218,15 @@ class User(UserMixin, Document):
 
         return tracks
 
-    @staticmethod
-    def update_timeline_data(user_id, access_token):
+    def update_timeline_data(self):
         """
         Updates the timeline data for the user
         """
 
         tracks = User.get_recent_tracks(
-            access_token=access_token)
+            access_token=self.access_token)
 
-        user_doc = users.find_one({"user_id": user_id})
+        user_doc = users.find_one({"user_id": self.user_id})
         timeline_data = user_doc["timeline_data"]
 
         for new_track in tracks:

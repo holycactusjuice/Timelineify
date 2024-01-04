@@ -4,7 +4,7 @@ const App = () => {
     const [data, setData] = useState([{}]);
 
     useEffect(() => {
-        fetch("/members") // gets data from /members route from backend
+        fetch("/") // gets data from /members route from backend
             .then((res) => res.json()) // parse response into json
             .then((data) => {
                 setData(data); // set data to json that was received
@@ -13,12 +13,9 @@ const App = () => {
     }, []); //depdendency array here so that useEffect only runs on first rendering
 
     return (
+        // button to test spotify login route from backend
         <div>
-            {typeof data.members == "undefined" ? (
-                <p>Loading...</p>
-            ) : (
-                data.members.map((member, i) => <p key={i}>{member}</p>)
-            )}
+            <a href="http://localhost:5000/login">Login to Spotify</a>
         </div>
     );
 };

@@ -3,17 +3,17 @@ from flask_login import LoginManager
 from pymongo import MongoClient
 from flask_pymongo import PyMongo
 from flask_cors import CORS
+import os
 
 
-CLIENT_ID = "88405b10e1704946976efdef33e73f64"
-CLIENT_SECRET = "9f5d2959d24e461a9b64b7a38291c0cf"
-REDIRECT_URI = "http://localhost:5000/callback"
-MONGODB_KEY = "key"
-MONGODB_PASSWORD = "FPurGYkgNlzLrVPQ"
-MONGODB_USERNAME = "pat-2"
-DB_NAME = "Timelineify"
+CLIENT_ID = os.get('CLIENT_ID')
+CLIENT_SECRET = os.get('CLIENT_SECRET')
+REDIRECT_URI = os.get('REDIRECT_URI')
+MONGODB_KEY = os.get('MONGODB_KEY')
+MONGODB_PASSWORD = os.get('MONGODB_PASSWORD')
+MONGODB_USERNAME = os.get('MONGODB_USERNAME')
+DB_NAME = os.get('DB_NAME') 
 
-MONGO_CONNECTION_STRING = f"mongodb+srv://{MONGODB_USERNAME}:{MONGODB_PASSWORD}@cluster0.iruvwvi.mongodb.net/"
 
 client = MongoClient(
     f'mongodb+srv://{MONGODB_USERNAME}:{MONGODB_PASSWORD}@cluster0.iruvwvi.mongodb.net/test?retryWrites=true&w=majority')

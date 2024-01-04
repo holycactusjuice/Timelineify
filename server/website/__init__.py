@@ -2,6 +2,7 @@ from flask import Flask
 from flask_login import LoginManager
 from pymongo import MongoClient
 from flask_pymongo import PyMongo
+from flask_cors import CORS
 
 
 CLIENT_ID = "88405b10e1704946976efdef33e73f64"
@@ -25,6 +26,8 @@ def create_app():
 
     mongo = PyMongo()
     mongo.init_app(app)
+
+    CORS(app)
 
     from .views import views
     from .auth import auth

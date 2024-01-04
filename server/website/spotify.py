@@ -5,9 +5,9 @@ from requests_oauthlib import OAuth2Session
 
 
 class Spotify:
-    client_id = "88405b10e1704946976efdef33e73f64"
-    client_secret = "9f5d2959d24e461a9b64b7a38291c0cf"
-    redirect_uri = "http://localhost:5000/callback"
+    client_id = ""
+    client_secret = ""
+    redirect_uri = ""
     scope = ["playlist-modify-public", "playlist-modify-private",
              "ugc-image-upload", "user-read-recently-played", "user-read-private", "user-read-email",]
     auth_base_url = "https://accounts.spotify.com/authorize"

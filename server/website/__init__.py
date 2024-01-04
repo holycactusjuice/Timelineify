@@ -4,7 +4,10 @@ from pymongo import MongoClient
 from flask_pymongo import PyMongo
 from flask_cors import CORS
 import os
+from dotenv import load_dotenv
 
+
+load_dotenv()
 
 CLIENT_ID = os.getenv('CLIENT_ID')
 CLIENT_SECRET = os.getenv('CLIENT_SECRET')
@@ -12,7 +15,7 @@ REDIRECT_URI = os.getenv('REDIRECT_URI')
 MONGODB_KEY = os.getenv('MONGODB_KEY')
 MONGODB_PASSWORD = os.getenv('MONGODB_PASSWORD')
 MONGODB_USERNAME = os.getenv('MONGODB_USERNAME')
-DB_NAME = os.getenv('DB_NAME') 
+DB_NAME = os.getenv('DB_NAME')
 
 
 client = MongoClient(

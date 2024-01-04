@@ -3,8 +3,11 @@ from datetime import datetime
 import string
 import secrets
 import os
+from dotenv import load_dotenv
 # from requests_oauthlib import OAuth2Session
 
+
+load_dotenv()
 
 class Spotify:
     client_id = os.getenv('CLIENT_ID')

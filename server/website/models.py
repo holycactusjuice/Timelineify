@@ -2,8 +2,6 @@ from mongoengine import Document, EmbeddedDocument, StringField, IntField, ListF
 from flask_login import UserMixin
 from flask import jsonify
 import requests
-import json
-import math
 import time
 
 from . import users

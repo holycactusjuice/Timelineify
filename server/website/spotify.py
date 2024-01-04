@@ -7,9 +7,9 @@ import os
 
 
 class Spotify:
-    client_id = os.get('CLIENT_ID')
-    client_secret = os.get('CLIENT_SECRET')
-    redirect_uri = os.get('REDIRECT_URI')
+    client_id = os.getenv('CLIENT_ID')
+    client_secret = os.getenv('CLIENT_SECRET')
+    redirect_uri = os.getenv('REDIRECT_URI')
 
     client_creds = f"{client_id}:{client_secret}"
     client_creds_b64 = base64.b64encode(client_creds.encode()).decode()

@@ -6,13 +6,13 @@ from flask_cors import CORS
 import os
 
 
-CLIENT_ID = os.get('CLIENT_ID')
-CLIENT_SECRET = os.get('CLIENT_SECRET')
-REDIRECT_URI = os.get('REDIRECT_URI')
-MONGODB_KEY = os.get('MONGODB_KEY')
-MONGODB_PASSWORD = os.get('MONGODB_PASSWORD')
-MONGODB_USERNAME = os.get('MONGODB_USERNAME')
-DB_NAME = os.get('DB_NAME') 
+CLIENT_ID = os.getenv('CLIENT_ID')
+CLIENT_SECRET = os.getenv('CLIENT_SECRET')
+REDIRECT_URI = os.getenv('REDIRECT_URI')
+MONGODB_KEY = os.getenv('MONGODB_KEY')
+MONGODB_PASSWORD = os.getenv('MONGODB_PASSWORD')
+MONGODB_USERNAME = os.getenv('MONGODB_USERNAME')
+DB_NAME = os.getenv('DB_NAME') 
 
 
 client = MongoClient(

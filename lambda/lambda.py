@@ -1,0 +1,284 @@
+from mongoengine import Document, EmbeddedDocument, StringField, IntField, ListField, DictField
+from pymongo import MongoClient
+import os
+from dotenv import load_dotenv
+from flask_login import UserMixin
+import requests
+import time
+
+from spotify import Spotify
+
+
+class Track(EmbeddedDocument):
+    track_id = StringField(primary_key=True, required=True,
+                           unique=True)  # same as spotify id
+    title = StringField(required=True)
+    artists = ListField(StringField(), required=True)
+    album = StringField(required=True)
+    album_art_url = StringField(required=True)
+    length = IntField(required=True)
+    played_at = IntField(required=True)
+    plays = IntField(required=True, default=1)
+    time_listened = IntField(required=True, default=0)
+
+    def __init__(self, track_id, title, artists, album, album_art_url, length, played_at, plays=1, time_listened=0, *args, **kwargs):
+        super(Track, self).__init__(*args, **kwargs)
+        self.track_id = track_id
+        self.title = title
+        self.artists = artists
+        self.album = album
+        self.album_art_url = album_art_url
+        self.length = length
+        self.played_at = played_at
+        self.plays = plays
+        self.time_listened = time_listened
+
+    @classmethod
+    def from_json(cls, track_json):
+        """
+        Creates a Track object from a track JSON
+
+        Args:
+            track_json (dict): track json received from Spotify API
+        Returns:
+            track (Track): Track object with track data
+        """
+
+        # retrieve track data from track JSON returned by Spotify API
+
+        track_id = track_json['track']['id']
+        title = track_json['track']['name']
+        artists = [artist["name"]
+                   for artist in track_json["track"]["artists"]]
+        album = track_json["track"]["album"]["name"]
+        album_art_url = track_json["track"]["album"]["images"][0]["url"]
+        length = int(track_json['track']['duration_ms'] / 1000)
+        played_at = track_json["played_at"]
+
+        # instantiate Track object from these data
+        track = Track(track_id, title, artists, album,
+                      album_art_url, length, played_at)
+
+        return track
+
+    def to_dict(self):
+        """
+        Converts Track object to track JSON
+
+        Returns:
+            track_json (dict): track json to be sent to frontend
+        """
+
+        track_dict = {
+            "track_id": self.track_id,
+            "title": self.title,
+            "artists": self.artists,
+            "album": self.album,
+            "album_art_url": self.album_art_url,
+            "length": self.length,
+            "played_at": self.played_at,
+            "plays": self.plays,
+            "time_listened": self.time_listened
+        }
+
+        return track_dict
+
+
+class User(UserMixin, Document):
+    user_id = StringField(required=True, primary_key=True, unique=True)
+    email = StringField(required=True, unique=True)
+    display_name = StringField(required=True)
+    pfp_url = StringField(required=True)
+    access_token = StringField(required=True)
+    refresh_token = StringField(required=True)
+    last_played_at = IntField(required=True, default=0)
+    timeline_data = DictField(required=True)
+
+    def __init__(self, user_id, email, display_name, pfp_url, access_token, refresh_token, last_played_at=0, timeline_data={}, *args, **kwargs):
+        super(User, self).__init__(*args, **kwargs)
+        self.user_id = user_id
+        self.email = email
+        self.display_name = display_name
+        self.pfp_url = pfp_url
+        self.access_token = access_token
+        self.refresh_token = refresh_token
+        self.last_played_at = last_played_at
+        self.timeline_data = timeline_data
+
+    def from_document(user_doc):
+        """
+        Creates a User object from a user document
+        """
+        user = User(
+            user_id=user_doc["user_id"],
+            email=user_doc["email"],
+            display_name=user_doc["display_name"],
+            pfp_url=user_doc["pfp_url"],
+            access_token=user_doc["access_token"],
+            refresh_token=user_doc["refresh_token"],
+            last_played_at=user_doc["last_played_at"],
+            timeline_data=user_doc["timeline_data"]
+        )
+        return user
+
+    def to_dict(self):
+        """
+        Converts User object to dictionary
+        """
+        return {
+            "user_id": self.user_id,
+            "email": self.email,
+            "display_name": self.display_name,
+            "pfp_url": self.pfp_url,
+            "access_token": self.access_token,
+            "refresh_token": self.refresh_token,
+            "last_played_at": self.last_played_at,
+            "timeline_data": self.timeline_data
+        }
+
+    def update(self):
+        """
+        Updates the user document in the database
+        """
+        query = {"user_id": self.user_id}
+        new_values = {"$set": self.to_dict()}
+        users.update_one(query, new_values)
+
+    def swap_and_update_tokens(self):
+        headers = {
+            'Authorization': f'Basic {Spotify.client_creds_b64}',
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+        data = {
+            'grant_type': 'refresh_token',
+            'refresh_token': self.refresh_token
+        }
+        response = requests.post(Spotify.token_url, headers=headers, data=data)
+        response_data = response.json()
+        new_access_token = response_data['access_token']
+        self.access_token = new_access_token
+
+        # new refresh token is only given if last one expired
+        if 'refresh_token' in response_data:
+            new_refresh_token = response_data['refresh_token']
+            self.refresh_token = new_refresh_token
+
+        self.update()
+        return
+
+    def get_recent_tracks(self):
+        response = requests.get(
+            url=Spotify.get_recently_played_endpoint,
+            params={
+                # current EST time in milliseconds
+                "before": int((time.time() + 5 * 60 * 60) * 1000),
+                "limit": 50
+            },
+            headers={
+                "Authorization": f"Bearer {self.access_token}"
+            }
+        )
+
+        # if access token is expired, swap and update tokens
+        # then try again
+        if (response.status_code in (400, 499)):
+            self.swap_and_update_tokens()
+            response = requests.get(
+                url=Spotify.get_recently_played_endpoint,
+                params={
+                    # current EST time in milliseconds
+                    "before": ((time.time() + 5 * 60 * 60) * 1000),
+                    "limit": 50
+                },
+                headers={
+                    "Authorization": f"Bearer {self.access_token}"
+                }
+            )
+
+        recent_tracks = response.json()["items"]
+
+        recent_tracks.reverse()
+
+        # Track objects stored here
+        tracks = []
+
+        for i, track_json in enumerate(recent_tracks):
+            # list is least to most recent
+
+            # listen time is given as the time when the user stopped listening to the track
+            # we can't calculate listen time for the first track since there is no track before it
+            # so we ignore the last track
+            if (i == 0):
+                continue
+
+            track = Track.from_json(track_json)
+            time_listened = Spotify.to_unix(track_json["played_at"]) - Spotify.to_unix(
+                recent_tracks[i-1]["played_at"])
+            # time_listened > length if:
+            #   - the user took a break before playing the track
+            #   - the user paused the track
+            #   - this is the first song in the session
+            # so if time_listened > track_length, make time_listened = track_length
+            track.time_listened = min(time_listened, track.length)
+            track.played_at = Spotify.to_unix(track_json["played_at"])
+            tracks.append(track)
+
+        return tracks
+
+    def update_timeline_data(self):
+        """
+        Updates the timeline data for the user
+        """
+
+        tracks = self.get_recent_tracks()
+
+        # user_doc = users.find_one({"user_id": self.user_id})
+        # timeline_data = user_doc["timeline_data"]
+
+        for new_track in tracks:
+            month = Spotify.unix_to_month(new_track.played_at)
+
+            # if month does not yet exist in the user's timeline data, create it
+            if (month not in self.timeline_data):
+                self.timeline_data[month] = []
+
+            exists = False
+            for existing_track in self.timeline_data[month]:
+                # check if track already exists in the user's timeline data
+                if (existing_track["track_id"] == new_track.track_id):
+                    # if the new track is more recent than the existing track, update the existing track
+                    if (new_track.played_at > existing_track["played_at"]):
+                        existing_track["played_at"] = new_track.played_at
+                        exists = True
+                        existing_track["plays"] += 1
+                        existing_track["time_listened"] += new_track.time_listened
+                    # otherwise, do nothing since this listen has already been recorded
+                    else:
+                        exists = True
+            # if track does not yet exist in the user's timeline data, add it
+            if (not exists):
+                self.timeline_data[month].append(new_track.to_dict())
+
+        self.update()
+        return
+
+
+load_dotenv()
+
+MONGODB_USERNAME = os.getenv('MONGODB_USERNAME')
+MONGODB_PASSWORD = os.getenv('MONGODB_PASSWORD')
+DB_NAME = os.getenv('DB_NAME')
+
+client = MongoClient(
+    f'mongodb+srv://{MONGODB_USERNAME}:{MONGODB_PASSWORD}@cluster0.iruvwvi.mongodb.net/test?retryWrites=true&w=majority')
+db = client[DB_NAME]
+users = db['users']
+
+
+def update_users_timeline_data():
+    for user_doc in users.find():
+        user = User.from_document(user_doc)
+        user.update_timeline_data()
+
+
+update_users_timeline_data()

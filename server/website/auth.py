@@ -74,8 +74,6 @@ def callback():
 
             user.update()
 
-        print(user.to_json())
-
         return user.to_json()
 
     else:

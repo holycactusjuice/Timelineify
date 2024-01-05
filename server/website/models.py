@@ -205,7 +205,6 @@ class User(UserMixin, Document):
             track = Track.from_json(track_json)
             time_listened = Spotify.to_unix(
                 recent_tracks[i-1]["played_at"]) - Spotify.to_unix(track_json["played_at"])
-            print(time_listened)
             # time_listened > length if:
             #   - the user took a break before playing the track
             #   - the user paused the track

@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 class Spotify:
     client_id = os.getenv('CLIENT_ID')
     client_secret = os.getenv('CLIENT_SECRET')
@@ -54,7 +55,7 @@ class Spotify:
         Returns:
             str: MM-YYYY
         """
-
+        print(datetime.fromtimestamp(unix))
         return datetime.fromtimestamp(unix).strftime("%m-%Y")
 
     def build_state():

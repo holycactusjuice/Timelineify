@@ -1,12 +1,10 @@
 from mongoengine import Document, EmbeddedDocument, StringField, IntField, ListField, DictField
-from pymongo import MongoClient
-import os
-from dotenv import load_dotenv
 from flask_login import UserMixin
 import requests
 import time
 
 from spotify import Spotify
+from users import users
 
 
 class Track(EmbeddedDocument):
@@ -260,24 +258,3 @@ class User(UserMixin, Document):
 
         self.update()
         return
-
-
-load_dotenv()
-
-MONGODB_USERNAME = os.getenv('MONGODB_USERNAME')
-MONGODB_PASSWORD = os.getenv('MONGODB_PASSWORD')
-DB_NAME = os.getenv('DB_NAME')
-
-client = MongoClient(
-    f'mongodb+srv://{MONGODB_USERNAME}:{MONGODB_PASSWORD}@cluster0.iruvwvi.mongodb.net/test?retryWrites=true&w=majority')
-db = client[DB_NAME]
-users = db['users']
-
-
-def update_users_timeline_data():
-    for user_doc in users.find():
-        user = User.from_document(user_doc)
-        user.update_timeline_data()
-
-
-update_users_timeline_data()

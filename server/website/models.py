@@ -1,4 +1,4 @@
-from mongoengine import Document, EmbeddedDocument, StringField, IntField, ListField, EmbeddedDocumentField, DictField
+from mongoengine import Document, EmbeddedDocument, StringField, IntField, ListField, DictField
 from flask_login import UserMixin
 from flask import jsonify
 import requests
@@ -80,7 +80,7 @@ class Track(EmbeddedDocument):
         }
 
         return track_dict
-    
+
     def to_json(self):
         return jsonify(self.to_dict())
 
@@ -121,7 +121,7 @@ class User(UserMixin, Document):
             timeline_data=user_doc["timeline_data"]
         )
         return user
-    
+
     def to_dict(self):
         """
         Converts User object to dictionary
@@ -139,12 +139,12 @@ class User(UserMixin, Document):
 
     def to_json(self):
         return jsonify(self.to_dict())
-    
+
     @staticmethod
     def get_user_document(user_id):
         user_doc = users.find_one({"user_id": user_id})
         return user_doc
-    
+
     @staticmethod
     def from_user_id(user_id):
         user_doc = User.get_user_document(user_id)
@@ -205,6 +205,7 @@ class User(UserMixin, Document):
             track = Track.from_json(track_json)
             time_listened = Spotify.to_unix(
                 recent_tracks[i-1]["played_at"]) - Spotify.to_unix(track_json["played_at"])
+            print(time_listened)
             # time_listened > length if:
             #   - the user took a break before playing the track
             #   - the user paused the track
@@ -221,21 +222,21 @@ class User(UserMixin, Document):
         Updates the timeline data for the user
         """
 
-        tracks = User.get_recent_tracks(
+        tracks = self.get_recent_tracks(
             access_token=self.access_token)
 
-        user_doc = users.find_one({"user_id": self.user_id})
-        timeline_data = user_doc["timeline_data"]
+        # user_doc = users.find_one({"user_id": self.user_id})
+        # timeline_data = user_doc["timeline_data"]
 
         for new_track in tracks:
             month = Spotify.unix_to_month(new_track.played_at)
 
             # if month does not yet exist in the user's timeline data, create it
-            if (month not in timeline_data):
-                timeline_data[month] = []
+            if (month not in self.timeline_data):
+                self.timeline_data[month] = []
 
             exists = False
-            for existing_track in timeline_data[month]:
+            for existing_track in self.timeline_data[month]:
                 # check if track already exists in the user's timeline data
                 if (existing_track.track_id == new_track.track_id):
                     # if the new track is more recent than the existing track, update the existing track
@@ -249,9 +250,7 @@ class User(UserMixin, Document):
                         exists = True
             # if track does not yet exist in the user's timeline data, add it
             if (not exists):
-                timeline_data[month].append(new_track.to_json())
+                self.timeline_data[month].append(new_track.to_json())
 
-        new_values = {"$set": {"timeline_data": timeline_data}}
-        users.update_one(user_doc, new_values)
-
+        self.update()
         return

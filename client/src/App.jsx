@@ -1,11 +1,12 @@
 import { BrowserRouter } from "react-router-dom";
 
-import { About, Navbar, Overview, Timeline } from "./components";
+import { About, Login, Navbar, Overview, Timeline } from "./components";
 
 const App = () => {
     return (
         <BrowserRouter>
             <Navbar />
+            <Login />
             <Overview />
             <Timeline />
             <About />

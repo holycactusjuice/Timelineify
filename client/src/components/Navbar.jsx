@@ -3,11 +3,7 @@ import React from "react";
 const Navbar = () => {
     return (
         <nav>
-            <ul>
-                <li>Home</li>
-                <li>Overview</li>
-                <li>Contact</li>
-            </ul>
+            <ul>Navbar</ul>
         </nav>
     );
 };

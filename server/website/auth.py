@@ -1,4 +1,4 @@
-from flask import redirect, Blueprint, session, request, url_for
+from flask import redirect, Blueprint, session, request
 import requests
 from urllib.parse import urlencode
 
@@ -8,6 +8,7 @@ from .models import User
 
 
 auth = Blueprint("auth", __name__)
+
 
 @auth.route("/login")
 def login():

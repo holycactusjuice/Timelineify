@@ -3,17 +3,13 @@ from datetime import datetime
 import string
 import secrets
 import os
-from dotenv import load_dotenv
 # from requests_oauthlib import OAuth2Session
 
 
-load_dotenv()
-
-
 class Spotify:
-    client_id = os.getenv('CLIENT_ID')
-    client_secret = os.getenv('CLIENT_SECRET')
-    redirect_uri = os.getenv('REDIRECT_URI')
+    client_id = os.environ['CLIENT_ID']
+    client_secret = os.environ['CLIENT_SECRET']
+    redirect_uri = os.environ['REDIRECT_URI']
 
     client_creds = f"{client_id}:{client_secret}"
     client_creds_b64 = base64.b64encode(client_creds.encode()).decode()

@@ -183,7 +183,7 @@ class User(UserMixin, Document):
         )
 
         # return empty list if access token has expired
-        if (response.status_code in (401, 403)):
+        if (response.status_code in range(400, 499)):
             return []
 
         recent_tracks = response.json()["items"]

@@ -181,7 +181,7 @@ class User(UserMixin, Document):
 
         # if access token is expired, swap and update tokens
         # then try again
-        if (response.status_code in (400, 499)):
+        if (response.status_code in range(400, 499)):
             self.swap_and_update_tokens()
             response = requests.get(
                 url=Spotify.get_recently_played_endpoint,
@@ -194,7 +194,6 @@ class User(UserMixin, Document):
                     "Authorization": f"Bearer {self.access_token}"
                 }
             )
-
         recent_tracks = response.json()["items"]
 
         recent_tracks.reverse()

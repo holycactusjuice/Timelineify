@@ -21,18 +21,6 @@ def login():
     }
     auth_url = Spotify.auth_base_url + '?' + urlencode(auth_params)
 
-    # oauth 2.0 requires https redirect uri
-
-    # # create OAuth2Session object with client_id, redirect_uri, and scope
-    # oauth = OAuth2Session(
-    #     cls.client_id, redirect_uri=cls.redirect_uri, scope=cls.scopes)
-
-    # # create auth url and state from OAuth2Session object
-    # auth_url, state = oauth.authorization_url(Spotify.auth_base_url)
-
-    # # store state in session
-    # session['oauth_state'] = state
-
     return redirect(auth_url)
 
 
@@ -92,15 +80,3 @@ def callback():
 
     else:
         return "error"
-
-    # oauth 2.0 requires https redirect uri
-
-    # oauth = OAuth2Session(
-    #     cls.client_id, redirect_uri=cls.redirect_uri, state=session['oauth_state'])
-
-    # oauth.fetch_token(
-    #     cls.token_url, authorization_response=request.url, client_secret=cls.client_secret)
-
-    # session['oauth_token'] = oauth.token
-
-    # return

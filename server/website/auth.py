@@ -32,8 +32,6 @@ def login():
     # # store state in session
     # session['oauth_state'] = state
 
-    print(auth_url)
-
     return redirect(auth_url)
 
 

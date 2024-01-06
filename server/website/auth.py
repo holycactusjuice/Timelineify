@@ -1,4 +1,5 @@
-from flask import redirect, Blueprint, session, request
+from flask import redirect, Blueprint, session, request, flash
+from flask_login import login_required, login_user, logout_user
 import requests
 from urllib.parse import urlencode
 
@@ -10,7 +11,7 @@ from .models import User
 auth = Blueprint("auth", __name__)
 
 
-@auth.route("/login")
+@auth.route("/login", methods=['GET', 'POST'])
 def login():
     auth_params = {
         'response_type': 'code',
@@ -24,7 +25,7 @@ def login():
     return redirect(auth_url)
 
 
-@auth.route("/callback")
+@auth.route("/callback", methods=['GET', 'POST'])
 def callback():
     auth_token = request.args['code']
     params = {
@@ -38,6 +39,8 @@ def callback():
     }
 
     response = requests.post(Spotify.token_url, params=params, headers=headers)
+
+    session.permanent = True
 
     # if login is successful
     if response.status_code in range(200, 299):
@@ -68,13 +71,26 @@ def callback():
             users.insert_one(user.to_dict())
         # if the user is in the db, update their tokens
         else:
-            user = User.from_user_id(user_id)
+            user = User.get(user_id)
             user.access_token = access_token
             user.refresh_token = refresh_token
 
             user.update()
 
-        return user.to_json()
-
+        login_user(user)
+        session['user_id'] = user.user_id
     else:
-        return "error"
+        session['user_id'] = None
+
+    session.modified = True
+
+    # regardless of login success, redirect to home page
+    return redirect("http://localhost:3000/")
+
+
+@auth.route("/logout")
+@login_required
+def logout():
+    session.clear()
+    # add spotify logout
+    return redirect("http://localhost:3000/")

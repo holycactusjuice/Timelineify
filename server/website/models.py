@@ -141,14 +141,19 @@ class User(UserMixin, Document):
         return jsonify(self.to_dict())
 
     @staticmethod
+    def id_to_json(user_id):
+        user_doc = User.get_user_document(user_id)
+        return jsonify(user_doc)
+
+    @staticmethod
     def get_user_document(user_id):
         user_doc = users.find_one({"user_id": user_id})
         return user_doc
 
     @staticmethod
-    def from_user_id(user_id):
+    def get(user_id):
         user_doc = User.get_user_document(user_id)
-        return User.from_document(user_doc)
+        return User.from_document(user_doc) if user_doc else None
 
     @staticmethod
     def get_account_info(access_token):

@@ -3,10 +3,8 @@ import { useNavigate } from "react-router-dom";
 
 const Login = () => {
     const handleLogin = () => {
-        // redirect to /auth/login in the backend
-        fetch("http://localhost:5000/login").then((res) => {
-            console.log(res);
-        });
+        // redirect to /login in the backend
+        window.location.href = "http://localhost:5000/login";
     };
 
     return (

@@ -23,11 +23,7 @@ const TimelineCard = ({ data }) => {
 };
 
 const Timeline = () => {
-    return (
-        <>
-            <div className="mt-20 flex flex-col">potato</div>
-        </>
-    );
+    return <h1>Timeline</h1>;
 };
 
 export default Timeline;

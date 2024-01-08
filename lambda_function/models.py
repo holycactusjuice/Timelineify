@@ -165,6 +165,8 @@ class User(UserMixin, Document):
         return
 
     def get_recent_tracks(self):
+        # proactively update access and refresh tokens
+        self.swap_and_update_tokens()
         response = requests.get(
             url=Spotify.get_recently_played_endpoint,
             params={
@@ -177,21 +179,6 @@ class User(UserMixin, Document):
             }
         )
 
-        # if access token is expired, swap and update tokens
-        # then try again
-        if (response.status_code in range(400, 499)):
-            self.swap_and_update_tokens()
-            response = requests.get(
-                url=Spotify.get_recently_played_endpoint,
-                params={
-                    # current EST time in milliseconds
-                    "before": ((time.time() + 5 * 60 * 60) * 1000),
-                    "limit": 50
-                },
-                headers={
-                    "Authorization": f"Bearer {self.access_token}"
-                }
-            )
         recent_tracks = response.json()["items"]
 
         recent_tracks.reverse()

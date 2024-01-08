@@ -35,6 +35,8 @@ def create_app():
     mongo = PyMongo()
     mongo.init_app(app)
 
+    # configure CORS to allow requests from frontend
+    # allow cookies so that session can be used
     CORS(app, resources={
          r"/api/*": {"origins": "http://localhost:3000"}}, supports_credentials=True)
 

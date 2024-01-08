@@ -369,7 +369,7 @@ class User(UserMixin, Document):
 
         return playlist_id
 
-    def get_overview_data(self, month):
+    def get_monthview_data(self, month):
         """
 
         """

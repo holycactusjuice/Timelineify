@@ -2,9 +2,9 @@ import React from "react";
 
 const Navbar = () => {
     return (
-        <nav>
-            <ul>Navbar</ul>
-        </nav>
+        <div>
+            <a href="http://localhost:5000/login">Login</a>
+        </div>
     );
 };
 

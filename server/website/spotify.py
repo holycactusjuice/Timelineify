@@ -22,9 +22,17 @@ class Spotify:
     auth_base_url = "https://accounts.spotify.com/authorize"
     token_url = "https://accounts.spotify.com/api/token"
 
-    get_user_endpoint = "https://api.spotify.com/v1/me"
-    create_playlist_endpoint = "https://api.spotify.com/v1/me/playlists"
-    get_recently_played_endpoint = "https://api.spotify.com/v1/me/player/recently-played"
+    def get_user_endpoint():
+        return "https://api.spotify.com/v1/me"
+
+    def create_playlist_endpoint(user_id):
+        return f"https://api.spotify.com/v1/users/{user_id}/playlists"
+
+    def get_recently_played_endpoint():
+        return "https://api.spotify.com/v1/me/player/recently-played"
+
+    def add_to_playlist_endpoint(playlist_id):
+        return f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks"
 
     def to_unix(played_at):
         """converts played_at field given by Spotify API to unix timestamp in ms

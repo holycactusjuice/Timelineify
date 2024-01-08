@@ -158,9 +158,9 @@ class User(UserMixin, Document):
     @staticmethod
     def get_account_info(access_token):
         response = requests.get(
-            url=Spotify.get_user_endpoint,
+            url=Spotify.get_user_endpoint(),
             headers={
-                "Authorization": "Bearer " + access_token,
+                "Authorization": f"Bearer {access_token}",
                 'Content-Type': 'application/x-www-form-urlencoded'
             }
         )
@@ -174,9 +174,31 @@ class User(UserMixin, Document):
         new_values = {"$set": self.to_dict()}
         users.update_one(query, new_values)
 
+    def swap_and_update_tokens(self):
+        headers = {
+            'Authorization': f'Basic {Spotify.client_creds_b64}',
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+        data = {
+            'grant_type': 'refresh_token',
+            'refresh_token': self.refresh_token
+        }
+        response = requests.post(Spotify.token_url, headers=headers, data=data)
+        response_data = response.json()
+        new_access_token = response_data['access_token']
+        self.access_token = new_access_token
+
+        # new refresh token is only given if last one expired
+        if 'refresh_token' in response_data:
+            new_refresh_token = response_data['refresh_token']
+            self.refresh_token = new_refresh_token
+
+        self.update()
+        return
+
     def get_recent_tracks(self):
         response = requests.get(
-            url=Spotify.get_recently_played_endpoint,
+            url=Spotify.get_recently_played_endpoint(),
             params={
                 # current EST time in milliseconds
                 "before": ((time.time() + 5 * 60 * 60) * 1000),
@@ -258,3 +280,94 @@ class User(UserMixin, Document):
 
         self.update()
         return
+
+    def create_playlist(self, playlist_name, description):
+        # proactively update access and refresh tokens
+        self.swap_and_update_tokens()
+        response = requests.post(
+            url=Spotify.create_playlist_endpoint(self.user_id),
+            headers={
+                "Authorization": f"Bearer {self.access_token}",
+                "Content-Type": "application/json"
+            },
+            # must send as json, not data
+            json={
+                "name": playlist_name,
+                "description": description,
+                "public": False
+            }
+        )
+
+        playlist_id = response.json()["id"]
+        return playlist_id
+
+    def get_top_tracks(self, month, length):
+        """
+        Returns the top tracks for a given month
+
+        Args:
+            month (str): month for which to get top tracks
+            length (int): number of tracks to return
+        Returns:
+            top_tracks (list): list of top tracks for the given month
+        """
+        tracks = self.timeline_data[month]
+        # sort tracks
+        # - primary key is play count
+        # - secondary key is time listened
+        # - descending (greatest first)
+        # then slice to get desired number of tracks
+        top_tracks = sorted(tracks, key=lambda track: (
+            track["plays"], track["time_listened"]), reverse=True)[:length]
+        return top_tracks
+
+    def add_tracks_to_playlist(self, playlist_id, top_tracks_uris):
+        """
+        Adds tracks to a playlist
+
+        Args:
+            playlist_id (str): id of playlist to add tracks to
+            top_tracks_uris (list): list of track uris to add to playlist
+        """
+        # proactively update access and refresh tokens
+        self.swap_and_update_tokens()
+        response = requests.post(
+            url=Spotify.add_to_playlist_endpoint(playlist_id),
+            headers={
+                "Authorization": f"Bearer {self.access_token}",
+                "Content-Type": "application/json"
+            },
+            # must send as json, not data
+            json={
+                "uris": top_tracks_uris
+            }
+        )
+        return
+
+    def create_top_tracks_playlist(self, month, length, playlist_name, description):
+        """
+        Creates a playlist of the user's top tracks for a given month
+
+        Args:
+            month (str): month for which to create playlist
+            length (int): number of tracks to include in playlist
+            playlist_name (str): name of playlist
+            description (str): description of playlist
+        Returns:
+            playlist_id (str): id of created playlist
+        """
+        # create playlist first and get the playlist id
+        playlist_id = self.create_playlist(playlist_name, description)
+        # create list of ids of top tracks
+        top_tracks_ids = [track["track_id"]
+                          for track in self.get_top_tracks(month, length)]
+        # turn track ids into track uris
+        top_tracks_uris = [
+            f"spotify:track:{track_id}" for track_id in top_tracks_ids]
+        # add tracks to playlist
+        self.add_tracks_to_playlist(playlist_id, top_tracks_uris)
+
+        return playlist_id
+
+    def get_overview_data(self):
+        pass

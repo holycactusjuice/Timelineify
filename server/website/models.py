@@ -369,5 +369,28 @@ class User(UserMixin, Document):
 
         return playlist_id
 
-    def get_overview_data(self):
-        pass
+    def get_overview_data(self, month):
+        """
+
+        """
+        tracks = self.timeline_data[month]
+        # calculate total number different of tracks
+        tracks_count = len(tracks)
+        # calculate total number of plays across all tracks
+        total_plays = sum([track["plays"] for track in tracks])
+        # calculate time listened across all tracks
+        total_time_listened = sum(
+            [track["time_listened"] for track in tracks])
+        hours_listened = total_time_listened // 3600
+        minutes_listened = (total_time_listened % 3600) // 60
+        seconds_listened = total_time_listened % 60
+
+        return {
+            "tracks_count": tracks_count,
+            "total_plays": total_plays,
+            "time_listened": {
+                "hours": hours_listened,
+                "minutes": minutes_listened,
+                "seconds": seconds_listened
+            },
+        }

@@ -37,7 +37,7 @@ def top_tracks_playlist(month, length):
     return jsonify({"playlist_id": playlist_id})
 
 
-@views.route("/overview-data")
+@views.route("/overview-data/<month>")
 def overview_data():
     user_id = session.get('user_id')
     # retrieve user info from MongoDB using the user_id from the session

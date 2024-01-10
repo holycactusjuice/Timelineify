@@ -7,6 +7,40 @@ from .spotify import Spotify
 views = Blueprint("views", __name__)
 
 
+# needed by Overview.jsx
+@views.route("/display-name")
+def display_name():
+    user_id = session.get('user_id')
+    # retrieve user info from MongoDB using the user_id from the session
+    user = User.get(user_id)
+
+    return jsonify({"display_name": user.display_name})
+
+
+@views.route("/timeline-data")
+def timeline_data():
+    user_id = session.get('user_id')
+    # retrieve user info from MongoDB using the user_id from the session
+    user = User.get(user_id)
+
+    timeline_data = []
+
+    for month in user.timeline_data.keys():
+        timeline_data.append({
+            "month": month,
+            "data": sorted(user.timeline_data[month], key=lambda track: track["plays"], reverse=True)
+        })
+
+    # timeline_data.append(
+    #     {
+    #         "month": "12-2023",
+    #         "data": sorted(user.timeline_data[month], key=lambda track: track["plays"], reverse=True)
+    #     }
+    # )
+
+    return jsonify(timeline_data)
+
+
 @views.route("/user-data")
 def user_data():
     user_id = session.get('user_id')

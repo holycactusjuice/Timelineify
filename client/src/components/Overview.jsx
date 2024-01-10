@@ -1,30 +1,34 @@
 import React, { useState, useEffect } from "react";
+import {
+    VerticalTimeline,
+    VerticalTimelineElement,
+} from "react-vertical-timeline-component";
 
 const Overview = () => {
-    const [userData, setUserData] = useState(null);
+    const [user, setUser] = useState(null);
 
     useEffect(() => {
         fetch("http://localhost:5000/user-data", {
             method: "GET",
+            // Send the user's cookie along with the request (VERY IMPORTANT)
             credentials: "include",
         })
             .then((response) => response.json())
-            .then((data) => setUserData(data))
+            .then((data) => setUser(data))
             .catch((error) => console.log(error));
     }, []);
 
     return (
-        <div>
+        <>
             <h1>Overview</h1>
             {/* Render user data */}
-            {userData && (
+            {user && (
                 <div>
-                    <p>User ID: {userData.user_id}</p>
-                    <p>Email: {userData.email}</p>
-                    {/* Add more user data fields */}
+                    <div>{user.display_name}</div>
                 </div>
             )}
-        </div>
+            <div></div>
+        </>
     );
 };
 

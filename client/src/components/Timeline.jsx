@@ -6,10 +6,18 @@ import {
 import { motion } from "framer-motion";
 import "react-vertical-timeline-component/style.min.css";
 
+import { useMonth } from "../contexts";
 import { styles } from "../styles";
 import { textVariant } from "../utils/motion";
+import { downArrow } from "../assets";
 
 const MonthCard = ({ month, monthData }) => {
+    const { setMonth } = useMonth();
+
+    const handleMonthChange = (newMonth) => {
+        setMonth(newMonth);
+    };
+
     return (
         <VerticalTimelineElement
             contentStyle={{ background: "#222", color: "#eee" }}
@@ -41,7 +49,7 @@ const MonthCard = ({ month, monthData }) => {
             </div>
             <ol className="mt-5 list-decimal ml-5 space-y-2">
                 {monthData ? (
-                    monthData.slice(0, 5).map((track, index) => {
+                    monthData.slice(0, 5).map((track) => {
                         return (
                             <li
                                 key={track.track_id}
@@ -52,9 +60,15 @@ const MonthCard = ({ month, monthData }) => {
                         );
                     })
                 ) : (
-                    <div>Loading tracks...</div>
+                    <div></div>
                 )}
             </ol>
+
+            <div className="mt-5 text-[14px] text-secondary hover:underline">
+                <a href="#monthview" onClick={() => handleMonthChange(month)}>
+                    view stats and tracks
+                </a>
+            </div>
         </VerticalTimelineElement>
     );
 };
@@ -73,14 +87,16 @@ const Timeline = () => {
     }, []);
 
     return (
-        <>
-            <motion.div variants={textVariant()}>
-                <h2 className={`${styles.sectionHeadText} text-center`}>
-                    Your top tracks for over the months
-                </h2>
-            </motion.div>
+        <section class="">
+            <h2
+                className={`${styles.sectionHeadText} text-center pt-[80px]`}
+                id="timeline"
+            >
+                Your Spotify timeline
+            </h2>
+
             <div className="mt-20 flex flex-col">
-                <VerticalTimeline visible={true}>
+                <VerticalTimeline>
                     {timelineData ? (
                         <div>
                             {timelineData.map((item) => (
@@ -92,11 +108,16 @@ const Timeline = () => {
                             ))}
                         </div>
                     ) : (
-                        <div>Loading...</div>
+                        <></>
                     )}
                 </VerticalTimeline>
+                <div class="flex justify-center mt-[120px]">
+                    <a href="#monthview">
+                        <img src={downArrow} alt="down arrow" class="h-10" />
+                    </a>
+                </div>
             </div>
-        </>
+        </section>
     );
 };
 

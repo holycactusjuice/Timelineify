@@ -7,7 +7,11 @@ from .spotify import Spotify
 views = Blueprint("views", __name__)
 
 
-# needed by Overview.jsx
+@views.route("/is-logged-in")
+def is_logged_in():
+    return jsonify({"is_logged_in": session.get('user_id') is not None})
+
+
 @views.route("/display-name")
 def display_name():
     user_id = session.get('user_id')
@@ -24,21 +28,33 @@ def timeline_data():
     user = User.get(user_id)
 
     timeline_data = []
-
     for month in user.timeline_data.keys():
         timeline_data.append({
             "month": month,
-            "data": sorted(user.timeline_data[month], key=lambda track: track["plays"], reverse=True)
+            # change to use get_top_tracks() method
+            "data": user.get_top_tracks(month)
         })
 
-    # timeline_data.append(
-    #     {
-    #         "month": "12-2023",
-    #         "data": sorted(user.timeline_data[month], key=lambda track: track["plays"], reverse=True)
-    #     }
-    # )
-
     return jsonify(timeline_data)
+
+
+@views.route("/tracks/<month>", defaults={"length": -1})
+@views.route("/tracks/<month>/<length>")
+def top_tracks_date(month, length):
+    # cast month and length to correct types
+    month = str(month)
+    length = int(length)
+
+    user_id = session.get('user_id')
+    # retrieve user info from MongoDB using the user_id from the session
+    user = User.get(user_id)
+
+    if month not in user.timeline_data.keys():
+        return jsonify([])
+
+    tracks = user.get_top_tracks(month, length)
+
+    return jsonify(tracks)
 
 
 @views.route("/user-data")
@@ -46,12 +62,16 @@ def user_data():
     user_id = session.get('user_id')
     # retrieve user info from MongoDB using the user_id from the session
     user_doc = User.get_user_document(user_id)
+
+    if user_doc is None:
+        return jsonify({})
     # remove _id since it is not JSON serializable and not needed
     user_doc.pop("_id", None)
 
     return jsonify(user_doc)
 
 
+@views.route("/top-tracks-playlist/<month>", defaults={"length": -1})
 @views.route("/top-tracks-playlist/<month>/<length>")
 def top_tracks_playlist(month, length):
     # cast month and length to correct types
@@ -63,7 +83,11 @@ def top_tracks_playlist(month, length):
     user = User.get(user_id)
 
     playlist_name = f"Your {month} top {length}"
-    description = f"Your top {length} songs for {month}"
+
+    if length != -1:
+        description = f"Your top {length} songs for {month}"
+    else:
+        description = f"Your top songs for {month}"
 
     playlist_id = user.create_top_tracks_playlist(
         month, length, playlist_name, description)

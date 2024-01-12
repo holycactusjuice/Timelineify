@@ -89,8 +89,7 @@ def callback():
 
 
 @auth.route("/logout")
-@login_required
 def logout():
-    session.clear()
+    session['user_id'] = None
     # add spotify logout
-    return redirect("http://localhost:3000/")
+    return redirect("https://accounts.spotify.com/en/logout")

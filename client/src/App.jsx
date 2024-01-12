@@ -1,28 +1,48 @@
 import { BrowserRouter } from "react-router-dom";
 import React, { useState, useEffect } from "react";
 
-import { About, MonthView, Navbar, Overview, Timeline } from "./components";
+import { MonthProvider } from "./contexts";
+import {
+    About,
+    MonthView,
+    Navbar,
+    Login,
+    Timeline,
+    Tracks,
+} from "./components";
 
 const App = () => {
-    const [userData, setUserData] = useState(null);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
 
     useEffect(() => {
-        fetch("http://localhost:5000/user-data", {
+        fetch("http://localhost:5000/is-logged-in", {
             method: "GET",
             credentials: "include",
         })
             .then((response) => response.json())
-            .then((data) => setUserData(data))
+            .then((data) => {
+                setIsLoggedIn(data.is_logged_in);
+                console.log(data.is_logged_in);
+            })
             .catch((error) => console.log(error));
     }, []);
 
     return (
         <BrowserRouter>
             <div className="relative z-0 bg-primary">
-                <Navbar />
-                <Overview />
-                <Timeline />
-                {/* <MonthView /> */}
+                <Navbar isLoggedIn={isLoggedIn} />
+                {isLoggedIn ? (
+                    <div class="">
+                        <MonthProvider>
+                            <Timeline />
+                            <MonthView />
+                            <Tracks />
+                        </MonthProvider>
+                    </div>
+                ) : (
+                    <Login />
+                )}
+
                 <About />
             </div>
         </BrowserRouter>

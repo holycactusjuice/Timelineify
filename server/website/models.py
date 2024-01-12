@@ -301,7 +301,7 @@ class User(UserMixin, Document):
         playlist_id = response.json()["id"]
         return playlist_id
 
-    def get_top_tracks(self, month, length):
+    def get_top_tracks(self, month, length=-1):
         """
         Returns the top tracks for a given month
 
@@ -318,8 +318,12 @@ class User(UserMixin, Document):
         # - descending (greatest first)
         # then slice to get desired number of tracks
         top_tracks = sorted(tracks, key=lambda track: (
-            track["plays"], track["time_listened"]), reverse=True)[:length]
-        return top_tracks
+            track["plays"], track["time_listened"]), reverse=True)
+
+        if length == -1:
+            return top_tracks
+        else:
+            return top_tracks[:length]
 
     def add_tracks_to_playlist(self, playlist_id, top_tracks_uris):
         """
@@ -394,3 +398,33 @@ class User(UserMixin, Document):
                 "seconds": seconds_listened
             },
         }
+
+    @staticmethod
+    def month_str_to_full(month):
+        """
+        Converts month string of form MM-YYYY to Month Year
+
+        Args:
+            month (str): month string of form MM-YYYY
+        Returns:
+            month_full (str): month string of form Month Year
+        """
+        month_dict = {
+            "01": "January",
+            "02": "February",
+            "03": "March",
+            "04": "April",
+            "05": "May",
+            "06": "June",
+            "07": "July",
+            "08": "August",
+            "09": "September",
+            "10": "October",
+            "11": "November",
+            "12": "December"
+        }
+        month_parts = month.split("-")
+        month_number = month_parts[0]
+        year = month_parts[1]
+        month_full = month_dict.get(month_number, "") + " " + year
+        return month_full
